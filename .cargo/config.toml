@@ -1,0 +1,11 @@
+# in .cargo/config.toml
+
+[unstable]
+build-std-features = ["compiler-builtins-mem"] # used add std lib fun fea
+build-std = ["core", "compiler_builtins"]  # handle complie core error
+
+[build]
+target = "x86_64-kros.json"
+
+[target.'cfg(target_os = "none")']  # cargo add bootimage after the line
+runner = "bootimage runner" 
