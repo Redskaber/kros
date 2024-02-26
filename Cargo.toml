@@ -4,20 +4,30 @@ version = "0.1.0"
 edition = "2021"
 
 # the profile used for `cargo build`
-[profile.dev]
-panic = "abort" # disable stack unwinding on panic
-
+# [profile.dev]
+# panic = "abort" # disable stack unwinding on panic
 # the profile used for `cargo build --release`
-[profile.release]
-panic = "abort" # disable stack unwinding on panic】
+# [profile.release]
+# panic = "abort" # disable stack unwinding on panic
+# error[E0152]: 
+#   duplicate lang item in crate `core` (which `rustc_std_workspace_core` depends on): `sized`. 
+#   => cargo bug: move `panic = "abort"` to pass.
 
 [dependencies]
-bootloader = "0.9"   # for booting: in cargo build after adding the line `bootloader = "0.9"`, gt 0.9 err
+bootloader = "0.9"  # for booting: in cargo build after adding the line `bootloader = "0.9"`, gt 0.9 err
 
-# vga lib
+# vga dependencies
 # volatile = "0.2.6" # for vga: default version
 volatile = "0.4"    # need impl trait: DerefMut and Deref
 lazy_static = {version = "1.0", features = ["spin_no_std"]}
 spin = "0.9.8"
 
+# test dependencies
+x86_64 = "0.14.2" # port mapping send exit code.
+uart_16550 = "0.3.0" # serial port: qemu output to console.
+
+[package.metadata.bootimage] # bootimage exit qemu virtaul command params
+test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio", "-display", "none"]
+test-success-exit-code = 33 # (0x10 << 1) | 1
+test-timeout = 10 # seconds
 

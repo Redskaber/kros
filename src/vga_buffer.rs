@@ -142,6 +142,24 @@ impl fmt::Write for Writer {
     }
 }
 
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    use core::fmt::Write;
+    WRITER.lock().write_fmt(args).expect("Printing to vga failed.");
+}
+
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => {{$crate::vga_buffer::_print(format_args!($($arg)*));}};
+}
+
+#[macro_export]
+macro_rules! println {
+    () => {$crate::print!("\n")};
+    ($($arg:tt)*) => {{$crate::print!("{}\n", format_args!($($arg)*));}};
+}
+
+
 // define global writer: spinlock and interior-mutability 
 lazy_static!{
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
@@ -151,25 +169,26 @@ lazy_static!{
     });
 }
 
-#[macro_export]
-macro_rules! print {
-    ($($arg:tt)*) => {{
-        $crate::vga_buffer::_print(format_args!($($arg)*));
-    }};
+
+// test part
+#[test_case]
+fn test_println_simple() {
+    println!("test_println_simple output");
 }
 
-#[macro_export]
-macro_rules! println {
-    () => {
-        $crate::print!("\n")
-    };
-    ($($arg:tt)*) => {{
-        $crate::print!("{}\n", format_args!($($arg)*));
-    }};
+#[test_case]
+fn test_println_many() {
+    for _ in 0..200 {
+        println!("test_println_many output");
+    }
 }
 
-#[doc(hidden)]
-pub fn _print(args: fmt::Arguments) {
-    use core::fmt::Write;
-    WRITER.lock().write_fmt(args).unwrap();
+#[test_case]
+fn test_println_output() {
+    let s = "Some test string that fits on a single line";
+    println!("{}", s);
+    for (i, c) in s.chars().enumerate() {
+        let screen_char = WRITER.lock().buffer.chars[BUFFER_HEIGHT - 2][i].read();
+        assert_eq!(char::from(screen_char.ascii_character), c);
+    }
 }
