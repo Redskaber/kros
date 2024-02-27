@@ -2,6 +2,12 @@
 name = "kros"
 version = "0.1.0"
 edition = "2021"
+authors = ["redskaber <redskaber@foxmail.com>"]
+
+# test set moudle should_panic don't used test runner.
+[[test]]
+name = "should_panic"
+harness = false
 
 # the profile used for `cargo build`
 # [profile.dev]
