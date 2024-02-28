@@ -1,13 +1,21 @@
 #![no_std] // don't link the Rust standard library
-#![cfg_attr(test, no_main)]
-#![feature(custom_test_frameworks)]
-#![test_runner(crate::test_runner)]
-#![reexport_test_harness_main = "test_main"]
+#![cfg_attr(test, no_main)] // cargo test -> #![no_main]
+#![feature(custom_test_frameworks)] // used custom framework
+#![test_runner(crate::test_runner)] // set test runner function
+#![reexport_test_harness_main = "test_main"] // rename test entry function name
+#![feature(abi_x86_interrupt)]  // interrupt used unstable feature
 
 use core::panic::PanicInfo;
 
 pub mod vga_buffer; // export
 pub mod serial; // export
+pub mod interrupts; // export
+
+/// init area:
+/// - interrupt
+pub fn init() {
+    interrupts::init_idt();
+}
 
 
 /// This define custom test framework.
@@ -49,6 +57,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
 #[cfg(test)]
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
+    init(); 
     test_main();
     loop{}
 }
