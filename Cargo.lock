@@ -36,6 +36,8 @@ checksum = "ca7c184781ceb5660872f833fc6bd64ec9ae2500f8c65354705af541e4c28f7f"
 name = "kros"
 version = "0.1.0"
 dependencies = [
+ "bit_field",
+ "bitflags 2.4.2",
  "bootloader",
  "lazy_static",
  "spin 0.9.8",
