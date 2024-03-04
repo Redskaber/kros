@@ -6,6 +6,7 @@
 
 use core::panic::PanicInfo;
 use kros::println;
+use x86_64::instructions::interrupts;
 
 
 // entry point
@@ -16,8 +17,10 @@ pub extern "C" fn _start() -> ! {
     // init
     kros::init();
 
-    // create break point used soft interrupt `int3`
-    x86_64::instructions::interrupts::int3();
+    fn _stack_overflow(){
+        _stack_overflow();
+    }
+    _stack_overflow();
 
     #[cfg(test)]
     test_main();

@@ -8,6 +8,9 @@ authors = ["redskaber <redskaber@foxmail.com>"]
 [[test]]
 name = "should_panic"
 harness = false
+[[test]]
+name = "stack_overflow"
+harness = false
 
 # the profile used for `cargo build`
 # [profile.dev]
