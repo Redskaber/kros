@@ -37,6 +37,10 @@ uart_16550 = "0.3.0" # serial port: qemu output to console.
 bitflags = "2.4.2" # bit flags: operator
 bit_field = "0.10.2" # entryoption: bit flags
 
+# hardware interrupt 
+pic8259 = "0.10" # abstract interface hardware interrupt agent(old used -> APIC).
+
+
 [package.metadata.bootimage] # bootimage exit qemu virtaul command params
 test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio", "-display", "none"]
 test-success-exit-code = 33 # (0x10 << 1) | 1

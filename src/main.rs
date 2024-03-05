@@ -6,7 +6,6 @@
 
 use core::panic::PanicInfo;
 use kros::println;
-use x86_64::instructions::interrupts;
 
 
 // entry point
@@ -17,16 +16,10 @@ pub extern "C" fn _start() -> ! {
     // init
     kros::init();
 
-    fn _stack_overflow(){
-        _stack_overflow();
-    }
-    _stack_overflow();
-
     #[cfg(test)]
     test_main();
 
-    println!("It did not crash!");
-    loop {}
+    kros::hlt_loop();
 }
 
 
@@ -36,7 +29,7 @@ pub extern "C" fn _start() -> ! {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    kros::hlt_loop();
 }
 
 #[cfg(test)]
