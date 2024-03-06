@@ -10,7 +10,7 @@
 //! `
 
 use crate::{
-    gdt, print, println,
+    gdt, hlt_loop, print, println
 };
 
 use x86_64::structures::idt::{
@@ -45,6 +45,7 @@ pub static PICS: Mutex<ChainedPics> = {
 #[repr(u8)]
 pub enum InterruptIndex { 
     Timer = PIC_1_OFFSET,  // hardware: Timer interrupt
+    Keyboard,   // handler: Keyboard interrupt
 }
 
 impl InterruptIndex {
@@ -75,6 +76,7 @@ lazy_static!{
 
         // hardware handler
         idt[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
+        idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler);
 
         idt
     };
@@ -110,6 +112,48 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFr
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }
+}
+
+/// create func used handler keyboard.
+extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
+
+    use spin::Mutex;
+    use x86_64::instructions::port::Port;
+    // used pc_keyboard: get scan_code end this interrupt
+    use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
+
+    // create once keyboard globel.
+    lazy_static!{
+        static ref KEYBOARD: Mutex<Keyboard<layouts::Uk105Key, ScancodeSet1>> = 
+            Mutex::new(
+                Keyboard::new(
+                    ScancodeSet1::new(), 
+                    layouts::Uk105Key, 
+                    HandleControl::Ignore,
+                )
+            );
+    }
+    
+    // ps/2 port addr; USB comp PS/2 .so used ps/2 can normal used. => USB
+    let mut keyboard = KEYBOARD.lock();
+    let mut ps2_port = Port::new(0x60);
+    let scan_code: u8 = unsafe {ps2_port.read()};
+
+    // pc_keyboard handler scan code.
+    if let Ok(Some(key_event)) = keyboard.add_byte(scan_code) { // Result<Option<KeyEvent>, Error>
+        if let Some(dec_key) = keyboard.process_keyevent(key_event) {
+            match dec_key {
+                DecodedKey::RawKey(dec_key) => print!("{:?}", dec_key),
+                DecodedKey::Unicode(character) => print!("{}", character),
+            }
+        }
+    }
+
+    // EOI end keyboard interrupt.
+    unsafe {
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
+    }
+
 }
 
 // test breakpoint

@@ -74,7 +74,8 @@ fn panic(info: &PanicInfo) -> ! {
     test_panic_handler(info);
 }
 
-pub fn hlt_loop() -> ! {
+// don't loop CPU used, stop used.
+pub fn hlt_loop() -> ! { 
     loop {
         x86_64::instructions::hlt();
     }
