@@ -16,6 +16,20 @@ pub extern "C" fn _start() -> ! {
     // init
     kros::init();
 
+    // Cr3 read
+    use x86_64::registers::control::Cr3;
+
+    let (level_4_page_table, _) = Cr3::read();
+    println!("Level 4 page table at: {:?}", level_4_page_table.start_address());
+
+    // Cr2 test
+    unsafe {
+        let p = 0x2031b2 as *mut u8;
+        println!("Read 0x2031b2: {:?}", *p);
+        *p = 24; 
+        println!("Write 0x2031b2: {:?}", *p);
+    }
+
     #[cfg(test)]
     test_main();
 

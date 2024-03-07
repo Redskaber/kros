@@ -6,7 +6,10 @@
 //!             - EntryOption
 //!         - InterruptStackFrame
 //!             - InterruptStackFrameValue
-//!         ...
+//!         - Interruptindex
+//!    - Prom-interruot-controller(PIC) -> hardware handler  -> IDT interrupts
+//!         Timer
+//!         Kryboard
 //! `
 
 use crate::{
@@ -98,6 +101,11 @@ extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
 extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, _error_code: PageFaultErrorCode) {
     println!("EXCEPTION: PAGE_FAULT\n{:#?}", _stack_frame);
     println!("ERROR CODE: {:#?}", _error_code);
+
+    // C2 register： page fault -> cpu auto write to exception virtual addr.
+    use x86_64::registers::control::Cr2;
+    println!("Accessed Address: {:?}", Cr2::read()); // error address 
+    hlt_loop();
 }
 
 // create func used handle double fault.
@@ -107,7 +115,7 @@ extern "x86-interrupt" fn double_fault_handler(_stack_frame: InterruptStackFrame
 
 /// create func used handler hardware.
 extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    print!(".");
+    // print!(".");
     // used EOI over handler -> unsafe
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
