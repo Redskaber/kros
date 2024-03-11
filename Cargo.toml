@@ -23,7 +23,9 @@ harness = false
 #   => cargo bug: move `panic = "abort"` to pass.
 
 [dependencies]
-bootloader = "0.9"  # for booting: in cargo build after adding the line `bootloader = "0.9"`, gt 0.9 err
+bootloader = {version="0.9", features = ["map_physical_memory"]}  # for booting: in cargo build after adding the line `bootloader = "0.9"`, gt 0.9 err -> memory change add map_physical_memory
+
+
 
 # vga dependencies
 # volatile = "0.2.6" # for vga: default version

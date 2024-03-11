@@ -104,7 +104,7 @@ extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, 
 
     // C2 register： page fault -> cpu auto write to exception virtual addr.
     use x86_64::registers::control::Cr2;
-    println!("Accessed Address: {:?}", Cr2::read()); // error address 
+    println!("Accessed Address: {:?}", Cr2::read()); // error address 6
     hlt_loop();
 }
 

@@ -6,11 +6,14 @@
 #![feature(abi_x86_interrupt)]  // interrupt used unstable feature
 
 use core::panic::PanicInfo;
+#[cfg(test)]
+use bootloader::{entry_point, BootInfo};
 
 pub mod vga_buffer; // export
 pub mod serial; // export
 pub mod interrupts; // export
 pub mod gdt; // export
+pub mod memory; // export
 
 /// init area:
 /// - interrupt
@@ -21,6 +24,7 @@ pub fn init() {
     // Prom-interrupt-control(PIC) 
     unsafe { interrupts::PICS.lock().initialize() }; // init
     x86_64::instructions::interrupts::enable(); // enable interrupt
+    // memory init
 }
 
 
@@ -59,10 +63,13 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     hlt_loop();
 }
 
-/// Entry ponit `cargo test`
+
+// Entry ponit `cargo test`
 #[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
+entry_point!(test_kernel_main);
+
+#[cfg(test)]
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init(); 
     test_main();
     hlt_loop();
