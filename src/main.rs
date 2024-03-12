@@ -5,14 +5,14 @@
 #![reexport_test_harness_main = "test_main"] // handle test find main and no_main 
 
 use core::panic::PanicInfo;
-use kros::{memory::{print_level_4_table, translate_some_addr, translate_some_addr_from_lib}, println};
+use kros::println;
 use bootloader::{entry_point, BootInfo}; // point real low inner and param info
 
 
 // entry point
 entry_point!(kernel_main);
 
-fn kernel_main(boot_info: &'static BootInfo) -> ! {
+fn kernel_main(_boot_info: &'static BootInfo) -> ! {
     println!("Hello World!");
 
     // init
@@ -20,7 +20,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     // print_level_4_table(boot_info);
     // translate_some_addr(boot_info);  // huge err
-    translate_some_addr_from_lib(boot_info);
+    // translate_some_addr_from_lib(boot_info);
     
     #[cfg(test)]
     test_main();
