@@ -5,21 +5,26 @@
 //!     ...
 
 
-mod test_space {
+pub mod test_space {
     use crate::println;
     use bootloader::BootInfo;   // addr info
     use x86_64::{
             VirtAddr,
             PhysAddr,
             structures::paging::{
-            Page, 
-            Mapper,             // 多级页表之间的映射关系与偏移
-            PageTable,
-            RecursivePageTable, // 递归页表
-            OffsetPageTable,    // 使用lib中 `OffsetPageTable` => 巨大的页面
-            Translate, 
+                Page,               // 页 u64
+                Mapper,             // 多级页表之间的映射关系与偏移
+                PageTable,          // 页表[u64; 2^9]
+                RecursivePageTable, // 递归页表
+                OffsetPageTable,    // 使用lib中 `OffsetPageTable` => 巨大的页面
+                Translate,          // 虚拟翻译为物理
+                FrameAllocator,     // new mapping 
+                PhysFrame,          // 物理帧
+                Size4KiB,           // 存储大小
         }
     };
+
+    use super::BootInfoFrameAllocator;
 
 
     #[allow(dead_code)]
@@ -268,24 +273,163 @@ mod test_space {
         }
     }
 
+
+    /// ################### 创建一个新的映射 && FrameAllocator #######################
+    /// 为给定的页面创建一个实例映射到框架 `0xb8000`
+    fn create_exmaple_mapping(
+        page: Page,
+        mapper: &mut OffsetPageTable,
+        frame_allocator: &mut impl FrameAllocator<Size4KiB>,
+    ) {
+        use x86_64::structures::paging::PageTableFlags as Flags;
+
+        // 将page中的数据映射到的物理地址&&物理帧号
+        let vga_addr = PhysAddr::new(0xb8000);
+        let frame: PhysFrame<Size4KiB> = PhysFrame::containing_address(vga_addr);
+        let flags = Flags::PRESENT | Flags::WRITABLE;
+
+        let map_to_result = unsafe {
+            // FIXME: 这并不安全，我们这样做只是为了测试
+            mapper.map_to(page, frame, flags, frame_allocator)
+        };
+
+        map_to_result.expect("map_tp faild!").flush();
+    }
+
+
+    /// 为了调用 create_example_mapping, 一个总是返回 `None` 的 FrameAllocator
+    pub struct EmtryFrameAllocator;
+    unsafe impl FrameAllocator<Size4KiB> for EmtryFrameAllocator {
+        fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
+            None
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn used_frame_allocator_zero(boot_info: &'static BootInfo) {
+        // 一般page 0 是未被使用，用于空指针解引用导致的 page err。
+        let zero_addr = VirtAddr::new(0x0); // unused -> ok
+        let _used_addr = VirtAddr::new(0xabcdef); // unused -> frame_allocator -> None -> err
+        let page: Page<Size4KiB> = Page::containing_address(zero_addr);
+        
+        let phys_offset = VirtAddr::new(boot_info.physical_memory_offset);
+        let mut mapper = unsafe {
+            init(phys_offset)
+        };
+        
+        // let mut frame_allocator = EmtryFrameAllocator;
+        let mut frame_allocator = EmtryFrameAllocator;
+
+        // 映射未使用的页: 当page 被使用时会使用frame_allocator 创建一个新的页进行内存的映射
+        create_exmaple_mapping(page, &mut mapper, &mut frame_allocator);
+
+
+        // 通过新的映射将字符串`New!`&&白底 写到屏幕上。
+        let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
+        unsafe {page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e)};   // f04e(`N`): VGA(background(u4)foreground(u4)charactor(u8))
+    }
+
+    #[allow(dead_code)]
+    pub fn used_impl_frame_allocator(boot_info: &'static BootInfo) {
+        // 一般page 0 是未被使用，用于空指针解引用导致的 page err。
+        let _zero_addr = VirtAddr::new(0x0); // unused -> ok
+        let used_addr = VirtAddr::new(0xabcdef); // unused -> frame_allocator -> regions_range-> PhyFrame -> ok
+        let page: Page<Size4KiB> = Page::containing_address(used_addr);
+        
+        let phys_offset = VirtAddr::new(boot_info.physical_memory_offset);
+        let mut mapper = unsafe {
+            init(phys_offset)
+        };
+        
+        // let mut frame_allocator = EmtryFrameAllocator;
+        let mut frame_allocator = unsafe {
+            BootInfoFrameAllocator::init(&boot_info.memory_map)
+        };
+
+        // 映射未使用的页: 当page 被使用时会使用frame_allocator 创建一个新的页进行内存的映射
+        create_exmaple_mapping(page, &mut mapper, &mut frame_allocator);
+
+
+        // 通过新的映射将字符串`New!`&&白底 写到屏幕上。
+        let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
+        unsafe {page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e)};   // f04e(`N`): VGA(background(u4)foreground(u4)charactor(u8))
+    }  
+
+
 }
 
 
+/// ########################## Impl Memory Space ##############################
+use bootloader::bootinfo::{
+    MemoryMap,      //底层机器的物理内存区域Map。
+    MemoryRegionType,
+}; 
+use x86_64::{
+    structures::paging::{
+        FrameAllocator, PhysFrame, Size4KiB
+    }, 
+    PhysAddr, 
+};
 
+// ####################### 分配页框 && FrameAllocator #########################
+/// 尝试创建一个FrameAllocator 
+/// 一个FrameAllocator, 从bootloader的内存中返回可用的frames(页帧).
+pub struct BootInfoFrameAllocator{
+    memory_map: &'static MemoryMap,
+    next: usize,
+}
 
+impl BootInfoFrameAllocator {
+    /// 从传递的内存 map 中创建一个FrameAllcator
+    /// 
+    /// 这个函数是不安全的，因为调用这必须保证传递的内存 map 是有效的
+    /// 主要的要求是， 所有在被标记为 "可用" 的帧都是真正未被使用的
+    pub unsafe fn init(memory_map: &'static MemoryMap) -> Self {
+        BootInfoFrameAllocator {
+            memory_map,
+            next: 0,    // 初始化为`0`，并将在每次分配帧时增加，以避免两次返回相同的帧
+        }
+    }
 
+    /// 在我们实现`FrameAllocator`特性之前，我们添加一个辅助方法，将内存映射转换为可用帧的迭代器。
+    fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
+        // 从内存 map 中获取可用区域
+        let regions = self.memory_map.iter();
+        let usable_regions = regions.filter(
+            |r| r.region_type == MemoryRegionType::Usable
+        );
 
+        // 将每个区域映射到其他地址范围
+        let addr_ranges = usable_regions.map(
+            |r|r.range.start_addr()..r.range.end_addr()
+        );
 
+        // 转化为一个帧起始地址的迭代器
+        let frame_addresses = addr_ranges.flat_map(
+            |r| r.step_by(4096)
+        );
 
+        // 从起始地址创建  `PhyFrame` 类型
+        frame_addresses.map(
+            |addr| PhysFrame::containing_address(
+                PhysAddr::new(addr)
+            )
+        )
+    }
+}
 
+unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
+    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
+        let frame = self.usable_frames().nth(self.next);
+        self.next +=1;
+        frame
+    }
+}
 
-
-
-
-
-
-
-
+// 这个实现不是很理想，因为它在每次分配时都会重新创建`usable_frame`分配器。
+// 最好的办法是直接将迭代器存储为一个结构域。
+// 这样我们就不需要`nth`方法了，可以在每次分配时直接调用[`next`]。
+// 这种方法的问题是，目前不可能将 “impl Trait “类型存储在一个结构字段中。当 [_named existential types_]完全实现时，它可能会在某一天发挥作用。
 
 
 
