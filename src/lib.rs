@@ -14,8 +14,11 @@ pub mod serial; // export
 pub mod interrupts; // export
 pub mod gdt; // export
 pub mod memory; // export
+extern crate alloc; // alloc 
+pub mod allocator; // export
 
 /// init area:
+/// - memory
 /// - interrupt
 /// - gdt
 pub fn init() {

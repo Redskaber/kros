@@ -180,7 +180,7 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
 /// 如果映射失败，该函数会 panic。
 pub fn used_impl_frame_allocator(boot_info: &'static BootInfo) {
     // unused -> frame_allocator -> regions_range-> PhyFrame -> ok
-    let used_addr = VirtAddr::new(0xabcdef);
+    let used_addr: VirtAddr = VirtAddr::new(0xabcdef);
     let page: Page<Size4KiB> = Page::containing_address(used_addr);
 
     let phys_offset = VirtAddr::new(boot_info.physical_memory_offset);

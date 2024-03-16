@@ -7,6 +7,8 @@
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kros::println; // point real low inner and param info
+extern crate alloc; // alloc 
+
 
 // entry point
 entry_point!(kernel_main);
@@ -18,8 +20,12 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     kros::init();
 
     // memory
-    kros::memory::translate_some_addr(boot_info);
-    kros::memory::used_impl_frame_allocator(boot_info);
+    // kros::memory::translate_some_addr(boot_info);
+    // kros::memory::used_impl_frame_allocator(boot_info);
+
+    // allocator
+    kros::allocator::test_space::heap_memory_mapper_allocator(boot_info);
+    kros::allocator::test_space::create_null_box();
 
     #[cfg(test)]
     test_main();
