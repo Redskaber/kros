@@ -4,18 +4,20 @@
 #![test_runner(crate::test_runner)] // set test runner function
 #![reexport_test_harness_main = "test_main"] // rename test entry function name
 #![feature(abi_x86_interrupt)]  // interrupt used unstable feature
+extern crate alloc; // alloc before use
 
 use core::panic::PanicInfo;
-#[cfg(test)]
-use bootloader::{entry_point, BootInfo};
 
 pub mod vga_buffer; // export
 pub mod serial; // export
 pub mod interrupts; // export
 pub mod gdt; // export
 pub mod memory; // export
-extern crate alloc; // alloc before use
 pub mod allocator; // export
+
+
+#[cfg(test)]
+use bootloader::{entry_point, BootInfo};
 
 /// init area:
 /// - memory
@@ -67,7 +69,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
 }
 
 
-// Entry ponit `cargo test`
+// Entry point `cargo test`
 #[cfg(test)]
 entry_point!(test_kernel_main);
 

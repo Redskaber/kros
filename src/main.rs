@@ -4,14 +4,14 @@
 #![test_runner(kros::test_runner)] // pointer test inner function. -> used lib
 #![reexport_test_harness_main = "test_main"] // handle test find main and no_main
 
+extern crate alloc; // alloc 
+
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
+use x86_64::VirtAddr; // virtual address
+
 use kros::println; // point real low inner and param info
-
 use kros::memory::{BootInfoFrameAllocator, OffsetPageTableWarper}; // virtual map physical
-use x86_64::VirtAddr;
-
-extern crate alloc; // alloc 
 
 
 // entry point
@@ -20,7 +20,7 @@ entry_point!(kernel_main);
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     println!("Hello World!");
 
-    // init
+    // init (gdt, idt, interrupt)
     kros::init();
 
     // memory mapper

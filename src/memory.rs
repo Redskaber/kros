@@ -154,6 +154,11 @@ impl BootInfoFrameAllocator {
         let frame_addresses = addr_ranges.flat_map(|r| r.step_by(4096));
         frame_addresses.map(|addr| PhysFrame::containing_address(PhysAddr::new(addr)))
     }
+
+    /// 返回可变引用的FrameAllocator
+    pub fn as_mut(&mut self) -> &mut Self {
+        self
+    }
 }
 
 unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
