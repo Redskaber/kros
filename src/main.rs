@@ -7,6 +7,10 @@
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kros::println; // point real low inner and param info
+
+use kros::memory::{BootInfoFrameAllocator, OffsetPageTableWarper}; // virtual map physical
+use x86_64::VirtAddr;
+
 extern crate alloc; // alloc 
 
 
@@ -19,13 +23,27 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // init
     kros::init();
 
-    // memory
+    // memory mapper
     // kros::memory::translate_some_addr(boot_info);
     // kros::memory::used_impl_frame_allocator(boot_info);
+    let mut mapper = unsafe {
+        OffsetPageTableWarper::init(
+            VirtAddr::new(
+                boot_info.physical_memory_offset
+            )
+        )
+    };
+    let mut frame_allocator = unsafe {
+        BootInfoFrameAllocator::init(&boot_info.memory_map)
+    };
+    kros::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap init failed");
 
-    // allocator
-    kros::allocator::test_space::heap_memory_mapper_allocator(boot_info);
-    kros::allocator::test_space::create_null_box();
+    // heap allocator
+    // kros::allocator::test_space::heap_memory_mapper_allocator(boot_info);
+    // kros::allocator::test_space::create_null_box();
+    kros::allocator::test_lib_space::create_null_box();
+    kros::allocator::test_lib_space::create_vec_box();
+    kros::allocator::test_lib_space::create_rc_box();
 
     #[cfg(test)]
     test_main();

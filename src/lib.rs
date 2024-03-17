@@ -14,7 +14,7 @@ pub mod serial; // export
 pub mod interrupts; // export
 pub mod gdt; // export
 pub mod memory; // export
-extern crate alloc; // alloc 
+extern crate alloc; // alloc before use
 pub mod allocator; // export
 
 /// init area:
