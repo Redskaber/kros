@@ -49,8 +49,9 @@ pic8259 = "0.10" # abstract interface hardware interrupt agent(old used -> APIC)
 # keyboard interrupt
 pc-keyboard = "0.7.0"
 
-# alloc memory
-linked_list_allocator = "0.9"
+# alloc memory 
+# version 0.9 has high warnning: linked_list_allocator vulnerable to out-of-bound writes on `Heap` initialization and `Heap::extend` High
+linked_list_allocator = "0.10.5"
 
 
 [package.metadata.bootimage] # bootimage exit qemu virtaul command params and qemu output to console

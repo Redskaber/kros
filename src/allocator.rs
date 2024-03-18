@@ -133,7 +133,7 @@ pub fn init_heap(
 
     // init allocator
     unsafe {
-        ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE); // version 0.10 to u8
+        ALLOCATOR.lock().init(HEAP_START as *mut u8, HEAP_SIZE); // version 0.10 to u8
     }
 
     Ok(())
