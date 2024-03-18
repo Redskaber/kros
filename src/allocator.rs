@@ -1,6 +1,8 @@
 //! this nodule impl kros memory allocator
 //! 
 
+/// myself define allocator simple `bump`
+pub mod bump;
 
 pub mod test_space {
     use bootloader::BootInfo;
@@ -100,6 +102,32 @@ use x86_64::{structures::paging::{
     },  
     VirtAddr,
 };
+
+use spin::{mutex::Mutex, MutexGuard};
+
+// 由于GlobalAlloc 参数是&self,而我们需要对&mut self进行操作，=> Warper(Allocator) => 足够通用可以放置在allocator 父模块中
+pub struct Locked<T> {
+    inner: Mutex<T>
+}
+
+impl <T> Locked<T> {
+    
+    /// Lock the underlying mutex.
+    pub const fn new(value: T) -> Self {
+        Locked {
+            inner: Mutex::new(value),
+        }
+    }
+    
+    /// Lock the underlying mutex.
+    pub fn lock(&self) -> MutexGuard<T> {
+        self.inner.lock()
+    }
+}
+
+fn align_up(addr: usize, align: usize) -> usize {
+    todo!("align_up") 
+}
 
 // define heap start and size
 pub const HEAP_START: usize = 0x_4444_4444_0000;
