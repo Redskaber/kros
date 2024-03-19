@@ -1,4 +1,4 @@
-//! this moudle impl Rust kernel cpu interrupt.
+//! this module impl Rust kernel cpu interrupt.
 //! `
 //!     - InterruptDescriptorTable
 //!         - Entry
@@ -6,10 +6,10 @@
 //!             - EntryOption
 //!         - InterruptStackFrame
 //!             - InterruptStackFrameValue
-//!         - Interruptindex
-//!    - Prom-interruot-controller(PIC) -> hardware handler  -> IDT interrupts
+//!         - Interrupt_index
+//!    - Prom-interrupt-controller(PIC) -> hardware handler  -> IDT interrupts
 //!         Timer
-//!         Kryboard
+//!         Keyboard
 //! `
 
 use crate::{
@@ -42,7 +42,7 @@ pub static PICS: Mutex<ChainedPics> = {
 };
 
 // load: went ChainedPics to Interrupt Descriptor Table
-// add_handler_fun: set hardware interrupt handler fucntion.
+// add_handler_fun: set hardware interrupt handler function.
 //     - eoi: note CPU interrupt over
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
@@ -85,9 +85,9 @@ lazy_static!{
     };
 }
 
-/// used macro impl anything exception set hadnler function.
+/// used macro impl anything exception set handler function.
 
-// used x86_64 moudle create IDE object
+// used x86_64 module create IDE object
 pub fn init_idt() {
     IDT.load(); // need lidt(Load Interrupt Descriptor Table Register)
 }
@@ -130,7 +130,7 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     // used pc_keyboard: get scan_code end this interrupt
     use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
 
-    // create once keyboard globel.
+    // create once keyboard global.
     lazy_static!{
         static ref KEYBOARD: Mutex<Keyboard<layouts::Uk105Key, ScancodeSet1>> = 
             Mutex::new(

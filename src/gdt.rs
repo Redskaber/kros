@@ -2,7 +2,7 @@
 //!     - load TSS
 //!         - privilege_stack_table [VirtAddr; 3],
 //!         - interrupt_stack_table [VirtAddr; 7],
-//!         - iomap_base u16
+//!         - io_map_base u16
 
 use core::ptr::addr_of; // static addr
 
@@ -18,7 +18,7 @@ use x86_64::structures::gdt::{
     SegmentSelector
 };
 
-/// buidler once TSS 
+/// builder once TSS 
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 
 lazy_static!{
@@ -79,7 +79,7 @@ lazy_static!{
         // segment
         let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());
         let tss_selector = gdt.add_entry(Descriptor::tss_segment(&TSS));
-        // combi
+        // group
         let selector = Selector::new(code_selector, tss_selector);
         GdtSelector::new(gdt, selector)
     };

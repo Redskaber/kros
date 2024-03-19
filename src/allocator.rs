@@ -91,7 +91,6 @@ pub mod test_space {
 
 
 // used lib allocator   
-use linked_list_allocator::LockedHeap;
 use x86_64::{structures::paging::{
         mapper::MapToError,
         FrameAllocator, 
@@ -104,6 +103,8 @@ use x86_64::{structures::paging::{
 };
 
 use spin::{mutex::Mutex, MutexGuard};
+
+use self::bump::BumpAllocator;
 
 // 由于GlobalAlloc 参数是&self,而我们需要对&mut self进行操作，=> Warper(Allocator) => 足够通用可以放置在allocator 父模块中
 pub struct Locked<T> {
@@ -125,8 +126,28 @@ impl <T> Locked<T> {
     }
 }
 
+/// align_up: 对齐地址，向上对齐，align必须是2的倍数，!(align -1) -> bit_mask(用于对齐区段)
+/// ```Rust
+/// let remainder = addr % align;
+/// if remainder == 0 {
+///     addr
+/// } else {
+///     addr - remainder + align    //  range: [ |(addr-remainder+align)  ] |(remainder)
+/// }
+/// ```
+/// addr = 1_0010    align = 8
+/// addr + align -1 
+///  1_0010           
+///+ 0_0111
+///  1_1001      0_0111 -> !(0_0111) -> 1...11000
+///  ||
+///  v
+/// (addr + align - 1) & !(align - 1) (addr + align -1) 向上取整
+///   0...01_1000   24  
+/// & 1...11_1000   -8 (8bit[0..7]) => 2^3 -1 => 3 个 0
+///   0...01_1000   24
 fn align_up(addr: usize, align: usize) -> usize {
-    todo!("align_up") 
+    (addr + align - 1) & !(align - 1)
 }
 
 // define heap start and size
@@ -134,7 +155,7 @@ pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+static ALLOCATOR: Locked<BumpAllocator> = Locked::new(BumpAllocator::new());
 
 pub fn init_heap(
     mapper: &mut impl Mapper<Size4KiB>,
@@ -161,7 +182,7 @@ pub fn init_heap(
 
     // init allocator
     unsafe {
-        ALLOCATOR.lock().init(HEAP_START as *mut u8, HEAP_SIZE); // version 0.10 to u8
+        ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE); // used self define `dump allocator`
     }
 
     Ok(())

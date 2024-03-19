@@ -42,7 +42,7 @@ unsafe impl GlobalAlloc for Locked<BumpAllocator> {
 
         // align up the start of the heap
         let alloc_start = align_up(bump.next, layout.align());
-        let alloc_end = match alloc_start.check_add(layout.size()) { 
+        let alloc_end = match alloc_start.checked_add(layout.size()) { 
             Some(end) => end,
             None => return ptr::null_mut(),
         };
