@@ -4,6 +4,8 @@
 #![test_runner(crate::test_runner)] // set test runner function
 #![reexport_test_harness_main = "test_main"] // rename test entry function name
 #![feature(abi_x86_interrupt)]  // interrupt used unstable feature
+#![feature(const_mut_refs)]  // allocator use const_mut_refs
+
 extern crate alloc; // alloc before use
 
 use core::panic::PanicInfo;
